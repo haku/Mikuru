@@ -9,6 +9,9 @@ http://www.apache.org/licenses/LICENSE-2.0
 
 Mikuru is an Android rsync app.
 
+This is ALPHA software (that is even less stable than BETA).
+Use at your own risk.
+
 To complete this source you will need to run fetchbin.sh to get the
 pre-build rsync binary.
 
