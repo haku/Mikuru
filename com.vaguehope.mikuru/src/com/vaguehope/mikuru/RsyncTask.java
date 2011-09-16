@@ -55,5 +55,11 @@ public class RsyncTask extends AsyncTask<String, String, Void> {
 		}
 	}
 	
+	@Override
+	protected void onPostExecute (Void result) {
+		this.txtConsole.append("exec ended.");
+		this.txtConsole.append("\n");
+	}
+	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 }

@@ -34,6 +34,7 @@ public class ExecHelper {
 		}
 		finally {
 			is.close();
+			proc.destroy();
 		}
 	}
 	
@@ -60,18 +61,14 @@ public class ExecHelper {
 				abort = !lineProc.processLine(line);
 				if (abort) break;
 			}
-			if (abort) {
-				proc.destroy();
-			}
-			else {
-				if (proc.waitFor() != 0) throw new IOException("Exec returned " + proc.waitFor() + ".");
-			}
+			if (!abort && proc.waitFor() != 0) throw new IOException("Exec returned " + proc.waitFor() + ".");
 		}
 		catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
 		finally {
 			reader.close();
+			proc.destroy();
 		}
 	}
 	
