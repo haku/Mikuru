@@ -4,7 +4,7 @@ import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-public class ConsoleAppender {
+public class ConsoleAppender implements Appender {
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	
 	private final TextView tv;
@@ -19,6 +19,7 @@ public class ConsoleAppender {
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	
+	@Override
 	public void append (String... msgs) {
 		for (String msg : msgs) this.tv.append(msg);
 		this.sv.post(this.scrollDown);

@@ -2,12 +2,11 @@ package com.vaguehope.mikuru;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Toast;
 
 import com.vaguehope.mikuru.ExecHelper.CancelCaller;
@@ -17,24 +16,24 @@ public class RsyncTask extends AsyncTask<String, String, Integer> implements Lin
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	
 	private final Context context;
-	private final ConsoleAppender consoleAppender;
-	private final View startButton;
-	private final View cancelButton;
+	private final Appender appender;
+	private final AtomicBoolean runningTracker;
+	private final Runnable onFinish;
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-	public RsyncTask (Context context, ConsoleAppender consoleAppender) {
+	public RsyncTask (Context context, Appender appender, AtomicBoolean runningTracker, Runnable onFinish) {
 		this.context = context;
-		this.consoleAppender = consoleAppender;
-		this.startButton = null;
-		this.cancelButton = null;
+		this.appender = appender;
+		this.runningTracker = runningTracker;
+		this.onFinish = onFinish;
 	}
 	
-	public RsyncTask (Context context, ConsoleAppender consoleAppender, View startButton, View cancelButton) {
-		this.context = context;
-		this.consoleAppender = consoleAppender;
-		this.startButton = startButton;
-		this.cancelButton = cancelButton;
+//	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	
+	public void cancel () {
+		if (RsyncTask.this.cancelCaller == null) throw new IllegalStateException("Can not cancel without cancelCaller.");
+		RsyncTask.this.cancelCaller.run();
 	}
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -43,27 +42,11 @@ public class RsyncTask extends AsyncTask<String, String, Integer> implements Lin
 	
 	@Override
 	protected void onPreExecute () {
-		if (this.startButton != null) {
-			if (this.startButton.isEnabled()) {
-				this.startButton.setEnabled(false);
-				this.cancelButton.setOnClickListener(this.cancelButton_onClick);
-				this.cancelButton.setEnabled(true);
-			}
-			else {
-				this.cancel(true);
-				Toast.makeText(this.context, "Task alrady running.\n", Toast.LENGTH_LONG).show();
-			}
+		if (!this.runningTracker.compareAndSet(false, true)) {
+			this.cancel(true);
+			Toast.makeText(this.context, "Task alrady running.\n", Toast.LENGTH_LONG).show();
 		}
 	}
-	
-	private OnClickListener cancelButton_onClick = new OnClickListener() {
-		@Override
-		public void onClick (View v) {
-			if (RsyncTask.this.cancelCaller != null) {
-				RsyncTask.this.cancelCaller.run();
-			}
-		}
-	};
 	
 	@Override
 	public void setCancelCallerRunnable (Runnable r) {
@@ -100,24 +83,34 @@ public class RsyncTask extends AsyncTask<String, String, Integer> implements Lin
 	protected void onProgressUpdate (String... values) {
 		if (values == null || values.length < 1) return;
 		for (String line : values) {
-			this.consoleAppender.append(line, "\n");
+			this.appender.append(line, "\n");
 		}
+	}
+	
+	@Override
+	protected void onCancelled () {
+		this.appender.append("cancelled.");
+		cleanUp();
 	}
 	
 	@Override
 	protected void onPostExecute (Integer result) {
 		if (result == null) {
-			this.consoleAppender.append("failed.");
+			this.appender.append("failed.");
 		}
 		else if (result.intValue() == Integer.MIN_VALUE) {
-			this.consoleAppender.append("aborted.");
+			this.appender.append("aborted.");
 		}
 		else {
-			this.consoleAppender.append("exit code ", result.toString(), ".", "\n");
+			this.appender.append("exit code ", result.toString(), ".", "\n");
 		}
 		
-		if (this.startButton != null) this.startButton.setEnabled(true);
-		if (this.cancelButton != null) this.cancelButton.setEnabled(false);
+		cleanUp();
+	}
+	
+	private void cleanUp () {
+		this.runningTracker.set(false);
+		if (this.onFinish != null) this.onFinish.run();
 	}
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
