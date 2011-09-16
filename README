@@ -1,3 +1,12 @@
+This source code is copyrighted by Fae Hutter 2011.  All rights reserved.
+
+This source code is made avaiable under the Apache 2 licence.
+This copy of the source code should also contain LICENCE and NOTICE files which
+contain the full licence terms copyright notices respectfully.
+
+The full licence can also be found here:
+http://www.apache.org/licenses/LICENSE-2.0
+
 Mikuru is an Android rsync app.
 
 To complete this source you will need to run fetchbin.sh to get the
