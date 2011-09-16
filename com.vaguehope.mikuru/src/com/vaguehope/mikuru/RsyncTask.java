@@ -74,6 +74,10 @@ public class RsyncTask extends AsyncTask<String, String, Integer> implements Lin
 	protected Integer doInBackground (String... params) {
 		if (isCancelled()) return null;
 		
+		publishProgress("params:");
+		for (String param : params) publishProgress(param);
+		publishProgress(""); // Force empty line.
+		
 		try {
 			RsyncHelper.readyRsync(this.context);
 			ProcessBuilder pb = RsyncHelper.makeProcessBulder(this.context, Arrays.asList(params));
