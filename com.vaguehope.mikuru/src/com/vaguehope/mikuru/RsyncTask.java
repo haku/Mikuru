@@ -49,8 +49,10 @@ public class RsyncTask extends AsyncTask<String, String, Void> {
 	@Override
 	protected void onProgressUpdate (String... values) {
 		if (values == null || values.length < 1) return;
-		this.txtConsole.append(values[0]);
-		this.txtConsole.append("\n");
+		for (String line : values) {
+			this.txtConsole.append(line);
+			this.txtConsole.append("\n");
+		}
 	}
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
