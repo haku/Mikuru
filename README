@@ -1,1 +1,10 @@
 Mikuru is an Android rsync app.
+
+To complete this source you will need to run fetchbin.sh to get the
+pre-build rsync binary.
+
+At the moment config is read from a text file '/sdcard/mikuru.conf'.
+The first line contains the rsync password.
+All following lines are individual arguments for rsync.
+This will be improved when I have time to write a nice GUI.
+
