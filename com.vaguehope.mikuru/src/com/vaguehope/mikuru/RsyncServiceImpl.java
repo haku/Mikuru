@@ -18,6 +18,7 @@ package com.vaguehope.mikuru;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,6 +38,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
+import android.widget.Toast;
 
 public class RsyncServiceImpl extends Service implements RsyncService, Appender {
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -50,12 +52,14 @@ public class RsyncServiceImpl extends Service implements RsyncService, Appender 
 	
 	@Override
 	public void onStart (Intent intent, int startId) {
-		startWork();
+		serviceBegan(startId);
+		startWork(startId);
 	}
 	
 	@Override
 	public void onDestroy () {
 		removePersistantNotification();
+		releaseWakeLock("onDestroy");
 	}
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -77,13 +81,7 @@ public class RsyncServiceImpl extends Service implements RsyncService, Appender 
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //	RsyncService
 	
-	protected final AtomicBoolean running = new AtomicBoolean(false); // Is the service running?
 	protected final Set<Appender> appenders = new LinkedHashSet<Appender>();
-	
-	@Override
-	public boolean isRunning () {
-		return this.running.get();
-	}
 	
 	@Override
 	public void cancelRun () {
@@ -118,44 +116,40 @@ public class RsyncServiceImpl extends Service implements RsyncService, Appender 
 	private final AtomicBoolean runningTracker = new AtomicBoolean(false); // This is a sort of lock RsyncTask to use.
 	protected final AtomicReference<RsyncTask> taskRef = new AtomicReference<RsyncTask>();
 	
-	private void startWork () {
-		if (!this.running.compareAndSet(false, true)) {
-			throw new IllegalStateException("Can not start a second run.");
-		}
-		
+	private void startWork (final int startId) {
 		File configFile = new File(C.CONFIG_FILE_PATH);
 		List<String> config;
 		try {
 			config = FileHelper.fileToList(configFile);
+			RsyncHelper.writePasswordFile(this, config.get(0));
 		}
 		catch (IOException e) {
 			this.append(Log.getStackTraceString(e));
+			finishService(RsyncServiceImpl.this, startId);
 			return;
 		}
-		
-		RsyncHelper.writePasswordFile(this, config.get(0));
 		
 		List<String> args = new LinkedList<String>();
 		args.add("--password-file=" + RsyncHelper.getPasswordFilePath(this));
 		args.addAll(config.subList(1, config.size()));
 		
-		RsyncTask task = new RsyncTask(this, this, this.runningTracker, this.postRunSelf);
+		final Runnable postRun = new Runnable() {
+			@Override
+			public void run () {
+				RsyncServiceImpl.this.taskRef.set(null);
+				finishService(RsyncServiceImpl.this, startId);
+			}
+		};
+		
+		RsyncTask task = new RsyncTask(this, this, this.runningTracker, postRun);
 		if (this.taskRef.compareAndSet(null, task)) {
 			task.execute(args.toArray(new String[]{}));
 		}
 		else {
-			throw new IllegalStateException("taskRef already set.");
+			Toast.makeText(this, "Already running.", Toast.LENGTH_LONG).show();
+			finishService(RsyncServiceImpl.this, startId);
 		}
 	}
-	
-	private final Runnable postRunSelf = new Runnable() {
-		@Override
-		public void run () {
-			RsyncServiceImpl.this.running.set(false);
-			RsyncServiceImpl.this.taskRef.set(null);
-			stopSelf();
-		}
-	};
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //	Persistent notification.
@@ -188,19 +182,21 @@ public class RsyncServiceImpl extends Service implements RsyncService, Appender 
 //	Wake locks.
 	
 	private final static Lock startLock = new ReentrantLock();
-	private static PowerManager.WakeLock mStartingService;
+	private static PowerManager.WakeLock wakeLock;
+	private static final Set<Integer> serviceStarts = new HashSet<Integer>();
 	
-	public static void beginStartingService (Context context, Intent intent) {
-		 Log.i(C.TAG, "beginStartingService() intent=" + intent.toString());
-		
+	public static void beginService (Context context, Intent intent) {
 		startLock.lock();
 		try {
-			if (mStartingService == null) {
+			if (wakeLock == null) {
 				PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-				mStartingService = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, C.TAG);
-				mStartingService.setReferenceCounted(false);
+				wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, C.TAG);
+				wakeLock.setReferenceCounted(false);
 			}
-			mStartingService.acquire();
+			if (!wakeLock.isHeld()) {
+				wakeLock.acquire();
+				Log.i(C.TAG, "Wakelock acquired.");
+			}
 			context.startService(intent);
 		}
 		finally {
@@ -208,19 +204,29 @@ public class RsyncServiceImpl extends Service implements RsyncService, Appender 
 		}
 	}
 	
-	public static void finishStartingService (Service service, int startId) {
-		Log.i(C.TAG, "finishStartingService() startId=" + startId);
-		
+	protected static void serviceBegan (int startId) {
+		Log.i(C.TAG, "serviceBegan startId=" + startId);
+		serviceStarts.add(Integer.valueOf(startId));
+	}
+	
+	protected static void finishService (Service service, int startId) {
 		startLock.lock();
 		try {
-			if (mStartingService != null) {
-				if (service.stopSelfResult(startId)) {
-					mStartingService.release();
-				}
+			serviceStarts.remove(Integer.valueOf(startId));
+			if (wakeLock != null && serviceStarts.size() == 0) {
+				service.stopSelf();
+				releaseWakeLock("startid=" + startId);
 			}
 		}
 		finally {
 			startLock.unlock();
+		}
+	}
+	
+	protected static void releaseWakeLock (String who) {
+		if (wakeLock.isHeld()) {
+			wakeLock.release();
+			Log.i(C.TAG, "Wakelock released by "+who+".");
 		}
 	}
 	
