@@ -2,6 +2,7 @@ package com.vaguehope.mikuru;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
@@ -22,9 +23,13 @@ public class RsyncHelper {
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	
-	private static String getRsyncBinaryPath (Context context) {
+	private static String getAppDataPath (Context context) {
 		// FIXME is there a specific API for this?
-		return "/data/data/" + context.getApplicationInfo().packageName + "/" + RSYNC_BINARY_NAME;
+		return "/data/data/" + context.getApplicationInfo().packageName;
+	}
+	
+	private static String getRsyncBinaryPath (Context context) {
+		return getAppDataPath(context) + "/" + RSYNC_BINARY_NAME;
 	}
 	
 	public static ProcessBuilder makeProcessBulder (Context context, List<String> args) {
@@ -68,6 +73,35 @@ public class RsyncHelper {
 		}
 		
 		ExecHelper.quiteExec(new String[] { "/system/bin/chmod", "744", targetPath } );
+	}
+	
+//	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	
+	private static final String PASSWORD_FILE_NAME = "rsyncpass";
+	
+	static public void writePasswordFile (Context context, String password) {
+		try {
+			_writePasswordFile(context, password);
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	static private void _writePasswordFile (Context context, String password) throws IOException {
+		String path = getPasswordFilePath(context);
+		FileWriter out = new FileWriter(path);
+		try {
+			out.write(password);
+		}
+		finally {
+			out.close();
+		}
+		ExecHelper.quiteExec(new String[] { "/system/bin/chmod", "600", path } );
+	}
+	
+	static public String getPasswordFilePath (Context context) {
+		return getAppDataPath(context) + "/" + PASSWORD_FILE_NAME;
 	}
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

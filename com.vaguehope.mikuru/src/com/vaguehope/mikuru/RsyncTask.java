@@ -11,7 +11,7 @@ import android.widget.Toast;
 
 import com.vaguehope.mikuru.ExecHelper.LineProcessor;
 
-public class RsyncTask extends AsyncTask<String, String, Void> {
+public class RsyncTask extends AsyncTask<String, String, Integer> {
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	
 	private final Context context;
@@ -47,18 +47,18 @@ public class RsyncTask extends AsyncTask<String, String, Void> {
 	}
 	
 	@Override
-	protected Void doInBackground (String... params) {
+	protected Integer doInBackground (String... params) {
 		if (isCancelled()) return null;
 		
 		try {
 			RsyncHelper.readyRsync(this.context);
 			ProcessBuilder pb = RsyncHelper.makeProcessBulder(this.context, Arrays.asList(params));
-			ExecHelper.expectExec(pb, this.lineProc);
+			int code = ExecHelper.expectExec(pb, this.lineProc);
+			return Integer.valueOf(code);
 		}
 		catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		return null;
 	}
 	
 	protected final LineProcessor lineProc = new LineProcessor() {
@@ -80,8 +80,8 @@ public class RsyncTask extends AsyncTask<String, String, Void> {
 	}
 	
 	@Override
-	protected void onPostExecute (Void result) {
-		this.txtConsole.append("exec ended.");
+	protected void onPostExecute (Integer result) {
+		this.txtConsole.append("exit code " + result + ".");
 		this.txtConsole.append("\n");
 		
 		if (this.button != null) this.button.setEnabled(true);

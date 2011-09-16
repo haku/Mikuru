@@ -50,7 +50,7 @@ public class ExecHelper {
 		expectExec(procBld, lineProc);
 	}
 	
-	protected static void expectExec (ProcessBuilder procBld, LineProcessor lineProc) throws IOException {
+	protected static int expectExec (ProcessBuilder procBld, LineProcessor lineProc) throws IOException {
 		if (!procBld.redirectErrorStream()) throw new IllegalArgumentException("procBld must have redirectErrorStream set.");
 		final Process proc = procBld.start();
 		final BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
@@ -61,7 +61,8 @@ public class ExecHelper {
 				abort = !lineProc.processLine(line);
 				if (abort) break;
 			}
-			if (!abort && proc.waitFor() != 0) throw new IOException("Exec returned " + proc.waitFor() + ".");
+			if (abort) return 0;
+			return proc.waitFor();
 		}
 		catch (InterruptedException e) {
 			throw new RuntimeException(e);
