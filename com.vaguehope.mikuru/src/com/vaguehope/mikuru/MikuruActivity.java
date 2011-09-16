@@ -34,7 +34,7 @@ public class MikuruActivity extends Activity {
 	private OnClickListener btnRunSync_onClick = new OnClickListener() {
 		@Override
 		public void onClick (View v) {
-			RsyncTask task = new RsyncTask(MikuruActivity.this, MikuruActivity.this.txtConsole);
+			RsyncTask task = new RsyncTask(MikuruActivity.this, MikuruActivity.this.txtConsole, v);
 			task.execute("--help");
 		}
 	};
