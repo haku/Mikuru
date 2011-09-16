@@ -6,7 +6,6 @@ import java.util.Arrays;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.vaguehope.mikuru.ExecHelper.LineProcessor;
@@ -15,20 +14,20 @@ public class RsyncTask extends AsyncTask<String, String, Integer> {
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	
 	private final Context context;
-	private final TextView txtConsole;
 	private final View button;
+	private final ConsoleAppender consoleAppender;
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-	public RsyncTask (Context context, TextView txtConsole) {
+	public RsyncTask (Context context, ConsoleAppender consoleAppender) {
 		this.context = context;
-		this.txtConsole = txtConsole;
+		this.consoleAppender = consoleAppender;
 		this.button = null;
 	}
 	
-	public RsyncTask (Context context, TextView txtConsole, View button) {
+	public RsyncTask (Context context, ConsoleAppender consoleAppender, View button) {
 		this.context = context;
-		this.txtConsole = txtConsole;
+		this.consoleAppender = consoleAppender;
 		this.button = button;
 	}
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -74,16 +73,13 @@ public class RsyncTask extends AsyncTask<String, String, Integer> {
 	protected void onProgressUpdate (String... values) {
 		if (values == null || values.length < 1) return;
 		for (String line : values) {
-			this.txtConsole.append(line);
-			this.txtConsole.append("\n");
+			this.consoleAppender.append(line, "\n");
 		}
 	}
 	
 	@Override
 	protected void onPostExecute (Integer result) {
-		this.txtConsole.append("exit code " + result + ".");
-		this.txtConsole.append("\n");
-		
+		this.consoleAppender.append("exit code ", result == null ? null : result.toString(), ".", "\n");
 		if (this.button != null) this.button.setEnabled(true);
 	}
 	
