@@ -5,44 +5,69 @@ import java.util.Arrays;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.util.Log;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.Toast;
 
+import com.vaguehope.mikuru.ExecHelper.CancelCaller;
 import com.vaguehope.mikuru.ExecHelper.LineProcessor;
 
-public class RsyncTask extends AsyncTask<String, String, Integer> {
+public class RsyncTask extends AsyncTask<String, String, Integer> implements LineProcessor, CancelCaller {
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	
 	private final Context context;
-	private final View button;
 	private final ConsoleAppender consoleAppender;
+	private final View startButton;
+	private final View cancelButton;
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 	public RsyncTask (Context context, ConsoleAppender consoleAppender) {
 		this.context = context;
 		this.consoleAppender = consoleAppender;
-		this.button = null;
+		this.startButton = null;
+		this.cancelButton = null;
 	}
 	
-	public RsyncTask (Context context, ConsoleAppender consoleAppender, View button) {
+	public RsyncTask (Context context, ConsoleAppender consoleAppender, View startButton, View cancelButton) {
 		this.context = context;
 		this.consoleAppender = consoleAppender;
-		this.button = button;
+		this.startButton = startButton;
+		this.cancelButton = cancelButton;
 	}
+	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	
+	protected Runnable cancelCaller;
 	
 	@Override
 	protected void onPreExecute () {
-		if (this.button != null) {
-			if (this.button.isEnabled()) {
-				this.button.setEnabled(false);
+		if (this.startButton != null) {
+			if (this.startButton.isEnabled()) {
+				this.startButton.setEnabled(false);
+				this.cancelButton.setOnClickListener(this.cancelButton_onClick);
+				this.cancelButton.setEnabled(true);
 			}
 			else {
 				this.cancel(true);
 				Toast.makeText(this.context, "Task alrady running.\n", Toast.LENGTH_LONG).show();
 			}
 		}
+	}
+	
+	private OnClickListener cancelButton_onClick = new OnClickListener() {
+		@Override
+		public void onClick (View v) {
+			if (RsyncTask.this.cancelCaller != null) {
+				RsyncTask.this.cancelCaller.run();
+			}
+		}
+	};
+	
+	@Override
+	public void setCancelCallerRunnable (Runnable r) {
+		this.cancelCaller = r;
 	}
 	
 	@Override
@@ -52,22 +77,20 @@ public class RsyncTask extends AsyncTask<String, String, Integer> {
 		try {
 			RsyncHelper.readyRsync(this.context);
 			ProcessBuilder pb = RsyncHelper.makeProcessBulder(this.context, Arrays.asList(params));
-			int code = ExecHelper.expectExec(pb, this.lineProc);
+			int code = ExecHelper.expectExec(pb, this, this);
 			return Integer.valueOf(code);
 		}
 		catch (IOException e) {
-			throw new RuntimeException(e);
+			publishProgress(Log.getStackTraceString(e));
+			return null;
 		}
 	}
 	
-	protected final LineProcessor lineProc = new LineProcessor() {
-		@Override
-		@SuppressWarnings("synthetic-access")
-		public boolean processLine (String line) {
-			publishProgress(new String[] { line });
-			return true;
-		}
-	};
+	@Override
+	public boolean processLine (String line) {
+		publishProgress(new String[] { line });
+		return true;
+	}
 	
 	@Override
 	protected void onProgressUpdate (String... values) {
@@ -79,8 +102,18 @@ public class RsyncTask extends AsyncTask<String, String, Integer> {
 	
 	@Override
 	protected void onPostExecute (Integer result) {
-		this.consoleAppender.append("exit code ", result == null ? null : result.toString(), ".", "\n");
-		if (this.button != null) this.button.setEnabled(true);
+		if (result == null) {
+			this.consoleAppender.append("failed.");
+		}
+		else if (result.intValue() == Integer.MIN_VALUE) {
+			this.consoleAppender.append("aborted.");
+		}
+		else {
+			this.consoleAppender.append("exit code ", result.toString(), ".", "\n");
+		}
+		
+		if (this.startButton != null) this.startButton.setEnabled(true);
+		if (this.cancelButton != null) this.cancelButton.setEnabled(false);
 	}
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

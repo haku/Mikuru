@@ -18,6 +18,14 @@
 				android:layout_gravity="left|center_vertical"
 				android:text="Sync desu~"
 				/>
+			
+			<Button android:id="@+id/btnCancelSync"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_weight="0"
+				android:layout_gravity="left|center_vertical"
+				android:text="Cancel desu~"
+				/>
 				
 			<Button android:id="@+id/btnClearLog"
 				android:layout_width="wrap_content"

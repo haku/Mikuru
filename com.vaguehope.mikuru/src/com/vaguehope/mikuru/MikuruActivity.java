@@ -23,11 +23,16 @@ public class MikuruActivity extends Activity {
 	protected ConsoleAppender consoleAppender;
 	
 	private void wireGui () {
-		Button btnRunSync = (Button) findViewById(R.id.btnRunSync);
-		btnRunSync.setOnClickListener(this.btnRunSync_onClick);
+		Button btn;
 		
-		Button btnClearLog = (Button) findViewById(R.id.btnClearLog);
-		btnClearLog.setOnClickListener(this.btnClearLog_onClick);
+		btn = (Button) findViewById(R.id.btnRunSync);
+		btn.setOnClickListener(this.btnRunSync_onClick);
+		
+		btn = (Button) findViewById(R.id.btnCancelSync);
+		btn.setEnabled(false);
+		
+		btn = (Button) findViewById(R.id.btnClearLog);
+		btn.setOnClickListener(this.btnClearLog_onClick);
 		
 		TextView tv = (TextView) findViewById(R.id.txtConsole);
 		ScrollView sv = (ScrollView) findViewById(R.id.svConsole);
@@ -38,7 +43,7 @@ public class MikuruActivity extends Activity {
 		@Override
 		public void onClick (View v) {
 			RsyncHelper.writePasswordFile(MikuruActivity.this, "passw0rd");
-			RsyncTask task = new RsyncTask(MikuruActivity.this, MikuruActivity.this.consoleAppender, v);
+			RsyncTask task = new RsyncTask(MikuruActivity.this, MikuruActivity.this.consoleAppender, v, findViewById(R.id.btnCancelSync));
 			task.execute(
 					"--help"
 					);

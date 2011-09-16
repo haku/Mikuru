@@ -44,15 +44,30 @@ public class ExecHelper {
 		public boolean processLine (String line);
 	}
 	
-	protected static void expectExec (String[] args, LineProcessor lineProc) throws IOException {
-		ProcessBuilder procBld = new ProcessBuilder(args);
-		procBld.redirectErrorStream(true);
-		expectExec(procBld, lineProc);
+	public static interface CancelCaller {
+		public void setCancelCallerRunnable (Runnable r);
 	}
 	
-	protected static int expectExec (ProcessBuilder procBld, LineProcessor lineProc) throws IOException {
+	protected static void expectExec (String[] args, LineProcessor lineProc, CancelCaller cancelCaller) throws IOException {
+		ProcessBuilder procBld = new ProcessBuilder(args);
+		procBld.redirectErrorStream(true);
+		expectExec(procBld, lineProc, cancelCaller);
+	}
+	
+	protected static int expectExec (ProcessBuilder procBld, LineProcessor lineProc, CancelCaller cancelCaller) throws IOException {
 		if (!procBld.redirectErrorStream()) throw new IllegalArgumentException("procBld must have redirectErrorStream set.");
+		
 		final Process proc = procBld.start();
+		
+		if (cancelCaller != null) {
+			cancelCaller.setCancelCallerRunnable(new Runnable() {
+				@Override
+				public void run () {
+					proc.destroy();
+				}
+			});
+		}
+		
 		final BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 		try {
 			String line;
@@ -61,7 +76,7 @@ public class ExecHelper {
 				abort = !lineProc.processLine(line);
 				if (abort) break;
 			}
-			if (abort) return 0;
+			if (abort) return Integer.MIN_VALUE;
 			return proc.waitFor();
 		}
 		catch (InterruptedException e) {
