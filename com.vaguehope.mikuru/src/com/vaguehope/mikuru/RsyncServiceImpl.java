@@ -79,9 +79,9 @@ public class RsyncServiceImpl extends Service implements RsyncService, Appender 
 	}
 	
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//	RsyncService
+//	RsyncService and Appender
 	
-	protected final Set<Appender> appenders = new LinkedHashSet<Appender>();
+	private final Set<Appender> appenders = new LinkedHashSet<Appender>();
 	
 	@Override
 	public void cancelRun () {
@@ -99,9 +99,6 @@ public class RsyncServiceImpl extends Service implements RsyncService, Appender 
 	public void removeAppender (Appender appender) {
 		this.appenders.remove(appender);
 	}
-	
-//	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//	Appender
 	
 	@Override
 	public void append (String... msg) {
