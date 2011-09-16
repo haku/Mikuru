@@ -9,6 +9,7 @@ http://www.apache.org/licenses/LICENSE-2.0
 
 Mikuru is an Android rsync app.
 
+WARNING:
 This is ALPHA software (that is even less stable than BETA).
 Use at your own risk.
 
@@ -19,4 +20,7 @@ At the moment config is read from a text file '/sdcard/mikuru.conf'.
 The first line contains the rsync password.
 All following lines are individual arguments for rsync.
 This will be improved when I have time to write a nice GUI.
+
+WARNING: 
+May contain excessive desu.
 
