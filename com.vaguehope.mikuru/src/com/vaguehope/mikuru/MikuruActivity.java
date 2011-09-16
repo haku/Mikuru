@@ -32,6 +32,9 @@ public class MikuruActivity extends Activity {
 		Button btnRunSync = (Button) findViewById(R.id.btnRunSync);
 		btnRunSync.setOnClickListener(this.btnRunSync_onClick);
 		
+		Button btnClearLog = (Button) findViewById(R.id.btnClearLog);
+		btnClearLog.setOnClickListener(this.btnClearLog_onClick);
+		
 		this.txtConsole = (TextView) findViewById(R.id.txtConsole);
 	}
 	
@@ -40,6 +43,13 @@ public class MikuruActivity extends Activity {
 		public void onClick (View v) {
 			RsyncRun task = new RsyncRun();
 			task.execute();
+		}
+	};
+	
+	private OnClickListener btnClearLog_onClick = new OnClickListener() {
+		@Override
+		public void onClick (View v) {
+			MikuruActivity.this.txtConsole.setText("");
 		}
 	};
 	
