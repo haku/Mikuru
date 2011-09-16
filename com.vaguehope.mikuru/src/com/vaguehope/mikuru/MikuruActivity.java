@@ -185,7 +185,8 @@ public class MikuruActivity extends Activity {
 			return;
 		}
 		
-		this.startService(new Intent(this, RsyncServiceImpl.class));
+		Intent intent = new Intent(this, RsyncServiceImpl.class);
+		RsyncServiceImpl.beginService(this, intent);
 		bindService();
 	}
 	

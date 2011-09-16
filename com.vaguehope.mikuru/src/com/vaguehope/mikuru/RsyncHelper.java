@@ -95,16 +95,7 @@ public class RsyncHelper {
 	
 	private static final String PASSWORD_FILE_NAME = "rsyncpass";
 	
-	static public void writePasswordFile (Context context, String password) {
-		try {
-			_writePasswordFile(context, password);
-		}
-		catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	static private void _writePasswordFile (Context context, String password) throws IOException {
+	static public void writePasswordFile (Context context, String password) throws IOException {
 		String path = getPasswordFilePath(context);
 		FileWriter out = new FileWriter(path);
 		try {
