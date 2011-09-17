@@ -65,7 +65,7 @@ public class RsyncHelper {
 		final String targetPath = getRsyncBinaryPath(context);
 		
 		if (rsyncReady.get()) return;
-		if (new File(targetPath).exists()) { // TODO check file permissions as well.
+		if (new File(targetPath).exists()) { // TODO check file permissions and MD5 as well.
 			rsyncReady.set(true);
 			return;
 		}
@@ -75,7 +75,7 @@ public class RsyncHelper {
 			FileOutputStream out = new FileOutputStream(targetPath);
 			try {
 				int read;
-				byte[] buffer = new byte[4096];
+				byte[] buffer = new byte[8192];
 				while ((read = in.read(buffer)) > 0) {
 					out.write(buffer, 0, read);
 				}
