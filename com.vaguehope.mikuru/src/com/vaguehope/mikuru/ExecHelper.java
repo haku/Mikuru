@@ -57,7 +57,7 @@ public class ExecHelper {
 //	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	
 	public static interface LineProcessor {
-		public boolean processLine (String line);
+		public void processLine (String line, Runnable canceller);
 	}
 	
 	public static interface CancelCaller {
@@ -75,24 +75,20 @@ public class ExecHelper {
 		
 		final Process proc = procBld.start();
 		
-		if (cancelCaller != null) {
-			cancelCaller.setCancelCallerRunnable(new Runnable() {
-				@Override
-				public void run () {
-					proc.destroy();
-				}
-			});
-		}
+		final Runnable canceller = new Runnable() {
+			@Override
+			public void run () {
+				proc.destroy();
+			}
+		};
+		if (cancelCaller != null) cancelCaller.setCancelCallerRunnable(canceller);
 		
 		final BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 		try {
 			String line;
-			boolean abort = false;
 			while ((line = reader.readLine()) != null) {
-				abort = !lineProc.processLine(line);
-				if (abort) break;
+				lineProc.processLine(line, canceller);
 			}
-			if (abort) return Integer.MIN_VALUE;
 			return proc.waitFor();
 		}
 		catch (InterruptedException e) {
