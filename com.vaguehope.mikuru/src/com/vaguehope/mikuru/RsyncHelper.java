@@ -18,7 +18,6 @@ package com.vaguehope.mikuru;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
@@ -96,15 +95,14 @@ public class RsyncHelper {
 	private static final String PASSWORD_FILE_NAME = "rsyncpass";
 	
 	static public void writePasswordFile (Context context, String password) throws IOException {
-		String path = getPasswordFilePath(context);
-		FileWriter out = new FileWriter(path);
-		try {
-			out.write(password);
+		File file = new File(getPasswordFilePath(context));
+		if (password != null && !password.equals(FileHelper.fileToString(file)) ) {
+			FileHelper.stringToFile(file, password);
+			ExecHelper.quiteExec(new String[] { "/system/bin/chmod", "600", file.getAbsolutePath() } );
 		}
-		finally {
-			out.close();
+		else if (password == null && file.exists()) {
+			file.delete();
 		}
-		ExecHelper.quiteExec(new String[] { "/system/bin/chmod", "600", path } );
 	}
 	
 	static public String getPasswordFilePath (Context context) {
