@@ -90,9 +90,8 @@ public class RsyncTask extends AsyncTask<String, String, Integer> implements Lin
 	}
 	
 	@Override
-	public boolean processLine (String line) {
+	public void processLine (String line, Runnable canceller) {
 		publishProgress(new String[] { line });
-		return true;
 	}
 	
 	@Override
@@ -113,9 +112,6 @@ public class RsyncTask extends AsyncTask<String, String, Integer> implements Lin
 	protected void onPostExecute (Integer result) {
 		if (result == null) {
 			this.appender.append("failed.");
-		}
-		else if (result.intValue() == Integer.MIN_VALUE) {
-			this.appender.append("aborted.");
 		}
 		else {
 			this.appender.append("exit code ", result.toString(), ".", "\n");
